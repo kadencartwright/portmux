@@ -2,7 +2,7 @@
   "name": "portmux",
   "version": "0.1.0",
   "private": true,
-  "description": "A persistent SSH port-forward manager with an OpenTUI interface",
+  "description": "Browse live remote dev ports and forward them locally from an OpenTUI interface",
   "type": "module",
   "bin": {
     "portmux": "./apps/portmux/dist/portmux.js"

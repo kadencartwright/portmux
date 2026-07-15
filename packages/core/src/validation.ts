@@ -2,7 +2,7 @@ import { homedir } from "node:os"
 import { resolve } from "node:path"
 import { Effect } from "effect"
 import { PortmuxError } from "./errors.js"
-import type { TunnelDraft } from "./model.js"
+import type { MachineDraft, TunnelDraft } from "./model.js"
 
 const WHITESPACE = /\s/u
 
@@ -42,12 +42,33 @@ const validateTunnelDraft = (draft: TunnelDraft): TunnelDraft => {
   return draft
 }
 
+const validateMachineDraft = (draft: MachineDraft): MachineDraft => {
+  if (!draft.name.trim() || hasControlCharacter(draft.name)) {
+    throw new Error("Name is required and cannot contain control characters")
+  }
+  validateHost(draft.sshTarget.trim(), "SSH target")
+  if (draft.identityFile && hasControlCharacter(draft.identityFile)) {
+    throw new Error("Identity file cannot contain control characters")
+  }
+  return draft
+}
+
 export const validateDraft = (draft: TunnelDraft): Effect.Effect<TunnelDraft, PortmuxError> =>
   Effect.try({
     try: () => validateTunnelDraft(draft),
     catch: (cause) =>
       new PortmuxError({
         message: cause instanceof Error ? cause.message : "Invalid tunnel",
+        cause,
+      }),
+  })
+
+export const validateMachine = (draft: MachineDraft): Effect.Effect<MachineDraft, PortmuxError> =>
+  Effect.try({
+    try: () => validateMachineDraft(draft),
+    catch: (cause) =>
+      new PortmuxError({
+        message: cause instanceof Error ? cause.message : "Invalid machine",
         cause,
       }),
   })

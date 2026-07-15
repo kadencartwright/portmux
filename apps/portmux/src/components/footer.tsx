@@ -3,9 +3,10 @@ import { theme } from "../theme.js"
 interface FooterProps {
   readonly busy: boolean
   readonly notice: string
+  readonly keys: string
 }
 
-export const Footer = ({ busy, notice }: FooterProps) => (
+export const Footer = ({ busy, notice, keys }: FooterProps) => (
   <box
     style={{
       height: 3,
@@ -16,10 +17,7 @@ export const Footer = ({ busy, notice }: FooterProps) => (
       backgroundColor: theme.panel,
     }}
   >
-    <text
-      content="↑↓/jk select · n new · Enter/s start/stop · o open · d delete · x stop verified external · r refresh · q quit"
-      style={{ fg: theme.muted }}
-    />
+    <text content={keys} style={{ fg: theme.muted }} />
     <text content={busy ? "Working…" : notice} style={{ fg: busy ? theme.warning : theme.accent }} />
   </box>
 )

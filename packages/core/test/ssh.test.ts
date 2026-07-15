@@ -17,6 +17,8 @@ const tunnel = (overrides: Partial<TunnelConfig> = {}): TunnelConfig => ({
   localPort: 3000,
   remoteHost: "127.0.0.1",
   remotePort: 3000,
+  machineId: null,
+  restoreOnLaunch: true,
   desired: "running",
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",

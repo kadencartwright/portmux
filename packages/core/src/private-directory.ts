@@ -1,4 +1,6 @@
 import { chmod, lstat, mkdir } from "node:fs/promises"
+import { Effect } from "effect"
+import { PortmuxError } from "./errors.js"
 
 export const ensurePrivateDirectory = async (path: string): Promise<void> => {
   await mkdir(path, { recursive: true, mode: 0o700 })
@@ -11,3 +13,9 @@ export const ensurePrivateDirectory = async (path: string): Promise<void> => {
   }
   await chmod(path, 0o700)
 }
+
+export const ensurePrivateDirectoryEffect = (path: string): Effect.Effect<void, PortmuxError> =>
+  Effect.tryPromise({
+    try: () => ensurePrivateDirectory(path),
+    catch: (cause) => new PortmuxError({ message: `Could not create ${path}`, cause }),
+  })

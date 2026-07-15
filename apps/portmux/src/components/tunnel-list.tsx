@@ -38,6 +38,9 @@ export const TunnelList = ({ tunnels, selectedIndex, height }: TunnelListProps) 
       height,
       minWidth: 36,
       flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: 0,
+      overflow: "hidden",
       padding: 1,
     }}
   >
@@ -60,7 +63,7 @@ export const TunnelList = ({ tunnels, selectedIndex, height }: TunnelListProps) 
               backgroundColor: selected ? theme.panelSelected : theme.background,
             }}
           >
-            <box style={{ justifyContent: "space-between" }}>
+            <box style={{ flexDirection: "row", justifyContent: "space-between" }}>
               <text content={`${selected ? "›" : " "} ${tunnel.name}`} style={{ fg: theme.text }} />
               <text content={status(tunnel)} style={{ fg: statusColor(tunnel) }} />
             </box>

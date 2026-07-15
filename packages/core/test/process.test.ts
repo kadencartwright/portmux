@@ -3,6 +3,15 @@ import { describe, expect, it } from "vitest"
 import { ProcessRunnerLive } from "../src/process.js"
 
 describe("process runner", () => {
+  it("marks output that exceeds its bounded capture", async () => {
+    const result = await Effect.runPromise(
+      ProcessRunnerLive.run(process.execPath, ["-e", "process.stdout.write('x'.repeat(300000))"]),
+    )
+
+    expect(result.truncated).toBe(true)
+    expect(Buffer.byteLength(result.stdout)).toBeLessThanOrEqual(256 * 1_024)
+  })
+
   it("settles after escalating a timed-out process that ignores SIGTERM", async () => {
     const startedAt = Date.now()
     const command = ProcessRunnerLive.run(
