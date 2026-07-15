@@ -12,6 +12,7 @@ http://127.0.0.1:3000  →  devbox  →  127.0.0.1:3000
 ## What it does
 
 - Creates local SSH forwards from a short form.
+- Offers concrete host aliases from `~/.ssh/config` and statically resolvable `Include` files in a picker.
 - Starts each forward as an OpenSSH control master in the background.
 - Persists definitions and desired state across Portmux restarts.
 - Rehydrates live status through OpenSSH control sockets when the TUI opens.
@@ -54,8 +55,12 @@ pnpm link --global
 portmux
 ```
 
-The form accepts an SSH config alias such as `devbox` or a destination such as `kaden@example.com`. New
-forwards bind to `127.0.0.1` so a development server is not accidentally exposed to the local network. The
+The form accepts an SSH config alias such as `devbox` or a destination such as `kaden@example.com`. With the
+SSH target field focused, press `↓` (or press Enter while it is empty) to browse concrete aliases discovered in
+the user SSH config. Selecting one keeps the alias itself, so OpenSSH still applies its configured `User`,
+`Port`, `ProxyJump`, identities, and other options. Manual entry always remains available.
+
+New forwards bind to `127.0.0.1` so a development server is not accidentally exposed to the local network. The
 remote destination defaults to `127.0.0.1` because it is interpreted on the remote machine.
 
 ## Keys
@@ -64,6 +69,7 @@ remote destination defaults to `127.0.0.1` because it is interpreted on the remo
 | --- | --- |
 | `↑` / `↓`, `j` / `k` | Select a forward |
 | `n` | Create a managed local forward |
+| `↓` or empty-target `Enter` | Browse aliases while the create form's SSH target is focused |
 | `Enter` or `s` | Start or stop the selected managed forward |
 | `o` | Open the selected running forward in a browser |
 | `d` | Stop and delete a managed forward |
@@ -86,6 +92,13 @@ also useful for isolated tests.
 SSH is invoked with an argument array, never a shell string. Host names, ports, and identity paths are validated;
 the identity path is the only authentication metadata persisted. Managed forwards disable agent forwarding, X11
 forwarding, and local commands. SSH config aliases and proxy settings still work normally.
+
+Host discovery reads configuration files directly and never invokes a shell or `ssh -G`, so it does not evaluate
+`Match exec`. It follows unconditional `Include` directives, plus includes under universally matching `Host`
+blocks or `Match all`, with bounded recursion and file sizes. Wildcard and negated host patterns are not offered
+as selectable aliases. Target-dependent include tokens and other-user `~name` paths are skipped because they
+cannot be resolved without a target or an external account lookup. Missing or unreadable config files do not
+prevent manual target entry.
 
 External process discovery is intentionally conservative. Portmux does not persist or replay a command it did
 not create. Linux discovery reads the same-user process's exact `/proc` argv, ignores anything after the SSH

@@ -1,7 +1,9 @@
 import { useKeyboard } from "@opentui/react"
 import type { TunnelDraft } from "@portmux/core"
 import { useCallback, useState } from "react"
+import { useSshConfigHosts } from "../hooks/use-ssh-config-hosts.js"
 import { theme } from "../theme.js"
+import { SshHostPicker } from "./ssh-host-picker.js"
 
 type Field = "name" | "sshTarget" | "localPort" | "remoteHost" | "remotePort" | "identityFile"
 
@@ -24,6 +26,7 @@ interface CreateFormProps {
 interface InputFieldProps {
   readonly label: string
   readonly placeholder: string
+  readonly value: string
   readonly focused: boolean
   readonly onInput: (value: string) => void
   readonly onSubmit: () => void
@@ -47,7 +50,7 @@ const initialValues: FormValues = {
   identityFile: "",
 }
 
-const InputField = ({ label, placeholder, focused, onInput, onSubmit }: InputFieldProps) => (
+const InputField = ({ label, placeholder, value, focused, onInput, onSubmit }: InputFieldProps) => (
   <box
     title={` ${label} `}
     style={{
@@ -61,6 +64,7 @@ const InputField = ({ label, placeholder, focused, onInput, onSubmit }: InputFie
   >
     <input
       placeholder={placeholder}
+      value={value}
       focused={focused}
       onInput={onInput}
       onSubmit={onSubmit}
@@ -68,6 +72,21 @@ const InputField = ({ label, placeholder, focused, onInput, onSubmit }: InputFie
     />
   </box>
 )
+
+const sshTargetIndex = fields.indexOf("sshTarget")
+
+const isEnterKey = (name: string): boolean =>
+  name === "enter" || name === "return" || name === "linefeed" || name === "kpenter"
+
+const hostHint = (status: "loading" | "ready" | "failed", count: number): string => {
+  if (status === "loading") {
+    return "loading SSH config hosts…"
+  }
+  if (status === "failed") {
+    return "SSH config unavailable · manual target still works"
+  }
+  return count > 0 ? `SSH target ↓ browses ${count} config aliases` : "no concrete SSH aliases found"
+}
 
 const toDraft = (values: FormValues): TunnelDraft => ({
   name: values.name,
@@ -82,6 +101,8 @@ const toDraft = (values: FormValues): TunnelDraft => ({
 export const CreateForm = ({ busy, notice, onCancel, onCreate }: CreateFormProps) => {
   const [values, setValues] = useState<FormValues>(initialValues)
   const [focusedIndex, setFocusedIndex] = useState(0)
+  const [choosingHost, setChoosingHost] = useState(false)
+  const sshConfig = useSshConfigHosts()
 
   const update = useCallback((field: Field, value: string) => {
     setValues((current) => ({ ...current, [field]: value }))
@@ -101,9 +122,30 @@ export const CreateForm = ({ busy, notice, onCancel, onCreate }: CreateFormProps
     }
   }, [busy, onCancel, onCreate, values])
 
+  const selectHost = useCallback((alias: string) => {
+    setValues((current) => ({ ...current, sshTarget: alias }))
+    setChoosingHost(false)
+    setFocusedIndex(sshTargetIndex + 1)
+  }, [])
+
   useKeyboard((key) => {
+    if (choosingHost) {
+      if (key.name === "escape") {
+        key.preventDefault()
+        setChoosingHost(false)
+        setFocusedIndex(sshTargetIndex)
+      }
+      return
+    }
     if (key.name === "escape") {
       onCancel()
+      return
+    }
+    const targetFocused = focusedIndex === sshTargetIndex
+    const enterOnEmptyTarget = isEnterKey(key.name) && values.sshTarget.length === 0
+    if (targetFocused && sshConfig.hosts.length > 0 && (key.name === "down" || enterOnEmptyTarget)) {
+      key.preventDefault()
+      setChoosingHost(true)
       return
     }
     if (key.name === "tab") {
@@ -124,10 +166,15 @@ export const CreateForm = ({ busy, notice, onCancel, onCreate }: CreateFormProps
   const fieldProps = (field: Field, index: number, label: string, placeholder: string) => ({
     label,
     placeholder,
+    value: values[field],
     focused: focusedIndex === index,
     onInput: (value: string) => update(field, value),
     onSubmit: () => onFieldSubmit(index),
   })
+
+  if (choosingHost) {
+    return <SshHostPicker hosts={sshConfig.hosts} onSelect={selectHost} />
+  }
 
   return (
     <box
@@ -141,7 +188,7 @@ export const CreateForm = ({ busy, notice, onCancel, onCreate }: CreateFormProps
       }}
     >
       <text
-        content="Binds locally to 127.0.0.1 · use an SSH config alias or user@host"
+        content={`Local-only bind · ${hostHint(sshConfig.status, sshConfig.hosts.length)}`}
         style={{ fg: theme.muted }}
       />
       <box style={{ width: "100%", height: 3, flexDirection: "row", gap: 1 }}>
@@ -161,7 +208,7 @@ export const CreateForm = ({ busy, notice, onCancel, onCreate }: CreateFormProps
         style={{ fg: busy ? theme.warning : theme.muted }}
       />
       <text
-        content="Tab next · Shift+Tab previous · Enter advance/create · Esc cancel"
+        content="Tab next · SSH target ↓ hosts · Enter advance/create · Esc cancel"
         style={{ fg: theme.muted }}
       />
     </box>
