@@ -1,0 +1,28 @@
+{
+  "name": "@portmux/app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "portmux": "./dist/portmux.js"
+  },
+  "scripts": {
+    "build": "bun build ./src/index.tsx --target=bun --outfile=./dist/portmux.js --external=@opentui/core --external=@opentui/react --external=react --external=effect",
+    "clean": "rm -rf dist",
+    "dev": "bun --watch ./src/index.tsx",
+    "start": "bun ./src/index.tsx",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@effect/platform-bun": "0.91.0",
+    "@opentui/core": "0.4.3",
+    "@opentui/react": "0.4.3",
+    "@portmux/core": "workspace:*",
+    "effect": "3.22.0",
+    "react": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17"
+  }
+}

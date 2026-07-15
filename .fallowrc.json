@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+  "health": {
+    "maxCognitive": 15,
+    "maxCrap": 140
+  },
+  "audit": {
+    "gate": "new-only"
+  }
+}

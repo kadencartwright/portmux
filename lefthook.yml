@@ -1,0 +1,23 @@
+pre-commit:
+  parallel: true
+  jobs:
+    - name: biome
+      glob: "*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,json,jsonc,css}"
+      run: pnpm exec biome check --no-errors-on-unmatched {staged_files}
+    - name: fallow
+      run: |
+        upstream="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+        if [ -n "$upstream" ]; then
+          base="$(git merge-base "$upstream" HEAD 2>/dev/null || echo "$upstream")"
+        elif git rev-parse --verify HEAD >/dev/null 2>&1; then
+          base="HEAD"
+        else
+          base=""
+        fi
+        if [ -n "$base" ]; then
+          pnpm exec fallow audit --base "$base" --quiet --gate new-only
+        else
+          pnpm exec fallow --quiet
+        fi
+    - name: gitleaks
+      run: gitleaks git --pre-commit --redact --staged --verbose
