@@ -36,3 +36,9 @@ export const getPortmuxPaths = (): PortmuxPaths => {
 
 export const controlSocketPath = (paths: PortmuxPaths, id: string): string =>
   join(paths.runtimeDirectory, `${createHash("sha256").update(id).digest("hex").slice(0, 24)}.sock`)
+
+export const machineControlSocketPath = (paths: PortmuxPaths, id: string): string =>
+  join(
+    paths.runtimeDirectory,
+    `m-${createHash("sha256").update(`machine:${id}`).digest("hex").slice(0, 22)}.sock`,
+  )

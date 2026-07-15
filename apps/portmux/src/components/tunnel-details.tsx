@@ -31,6 +31,10 @@ export const TunnelDetails = ({ tunnel, height }: TunnelDetailsProps) => (
       flexDirection: "column",
       height,
       minWidth: 34,
+      flexGrow: 1,
+      flexShrink: 1,
+      flexBasis: 0,
+      overflow: "hidden",
       padding: 1,
     }}
   >

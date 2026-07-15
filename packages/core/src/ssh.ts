@@ -3,7 +3,7 @@ import { Effect } from "effect"
 import { PortmuxError } from "./errors.js"
 import type { ManagedTunnel, TunnelConfig } from "./model.js"
 import { controlSocketPath, type PortmuxPaths } from "./paths.js"
-import { ensurePrivateDirectory } from "./private-directory.js"
+import { ensurePrivateDirectoryEffect } from "./private-directory.js"
 import type { ProcessRunner } from "./process.js"
 import { resolveIdentityFile } from "./validation.js"
 
@@ -103,10 +103,7 @@ export const startTunnelProcess = (
   tunnel: TunnelConfig,
 ): Effect.Effect<void, PortmuxError> =>
   Effect.gen(function* () {
-    yield* Effect.tryPromise({
-      try: () => ensurePrivateDirectory(paths.runtimeDirectory),
-      catch: (cause) => new PortmuxError({ message: `Could not create ${paths.runtimeDirectory}`, cause }),
-    })
+    yield* ensurePrivateDirectoryEffect(paths.runtimeDirectory)
     const current = yield* checkTunnel(runner, paths, tunnel)
     if (current.status === "running") {
       return

@@ -6,6 +6,7 @@ export interface ProcessResult {
   readonly exitCode: number
   readonly stdout: string
   readonly stderr: string
+  readonly truncated?: boolean
 }
 
 export interface ProcessRunner {
@@ -18,8 +19,10 @@ export interface ProcessRunner {
 
 const MAX_OUTPUT_BYTES = 256 * 1024
 
-const appendOutput = (current: string, chunk: Buffer): string =>
-  `${current}${chunk.toString("utf8")}`.slice(-MAX_OUTPUT_BYTES)
+const appendOutput = (current: Buffer, chunk: Buffer): Buffer => {
+  const combined = Buffer.concat([current, chunk])
+  return combined.length > MAX_OUTPUT_BYTES ? combined.subarray(combined.length - MAX_OUTPUT_BYTES) : combined
+}
 
 const execute = (
   executable: string,
@@ -32,8 +35,11 @@ const execute = (
       shell: false,
       stdio: ["ignore", "pipe", "pipe"],
     })
-    let stdout = ""
-    let stderr = ""
+    let stdout: Buffer = Buffer.alloc(0)
+    let stderr: Buffer = Buffer.alloc(0)
+    let outputTruncated = false
+    let stdoutBytes = 0
+    let stderrBytes = 0
     let timedOut = false
     let settled = false
     let killTimeout: ReturnType<typeof setTimeout> | undefined
@@ -73,9 +79,13 @@ const execute = (
     }
 
     child.stdout.on("data", (chunk: Buffer) => {
+      stdoutBytes += chunk.length
+      outputTruncated ||= stdoutBytes > MAX_OUTPUT_BYTES
       stdout = appendOutput(stdout, chunk)
     })
     child.stderr.on("data", (chunk: Buffer) => {
+      stderrBytes += chunk.length
+      outputTruncated ||= stderrBytes > MAX_OUTPUT_BYTES
       stderr = appendOutput(stderr, chunk)
     })
     child.once("error", rejectOnce)
@@ -84,7 +94,12 @@ const execute = (
         rejectOnce(new Error(`${executable} timed out after ${timeoutMilliseconds}ms`))
         return
       }
-      resolveOnce({ exitCode: code ?? 1, stdout, stderr })
+      resolveOnce({
+        exitCode: code ?? 1,
+        stdout: stdout.toString("utf8"),
+        stderr: stderr.toString("utf8"),
+        truncated: outputTruncated,
+      })
     })
   })
 

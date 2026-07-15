@@ -1,18 +1,23 @@
 import { useKeyboard } from "@opentui/react"
 import type { ExternalTunnel, ManagedTunnel, TunnelView } from "@portmux/core"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import type { TunnelActions } from "./use-tunnels.js"
 
 export type ConfirmationState =
   | { readonly kind: "delete"; readonly tunnel: ManagedTunnel }
   | { readonly kind: "stop-external"; readonly tunnel: ExternalTunnel }
 
-interface DashboardControls {
+export interface DashboardControls {
   readonly selectedIndex: number
   readonly selected: TunnelView | undefined
   readonly creating: boolean
   readonly confirmation: ConfirmationState | undefined
   readonly closeCreate: () => void
+}
+
+interface DashboardControlOptions {
+  readonly enabled: boolean
+  readonly onBack: () => void
 }
 
 const moveSelection = (current: number, amount: number, count: number): number => {
@@ -46,7 +51,11 @@ const selectedActionFor = (name: string, tunnel: TunnelView): SelectedAction | u
   return undefined
 }
 
-export const useDashboardControls = (actions: TunnelActions, onExit: () => void): DashboardControls => {
+export const useDashboardControls = (
+  actions: TunnelActions,
+  onExit: () => void,
+  options: DashboardControlOptions,
+): DashboardControls => {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [creating, setCreating] = useState(false)
   const [confirmation, setConfirmation] = useState<ConfirmationState>()
@@ -102,36 +111,50 @@ export const useDashboardControls = (actions: TunnelActions, onExit: () => void)
     [actions],
   )
 
+  const moveSelected = useCallback(
+    (amount: number) => {
+      setSelectedIndex((current) => moveSelection(current, amount, actions.dashboard.tunnels.length))
+    },
+    [actions.dashboard.tunnels.length],
+  )
+
+  const handleUnmappedListKey = useCallback(
+    (name: string) => {
+      if (!selected || actions.busy) {
+        return
+      }
+      handleSelectedAction(name, selected)
+    },
+    [actions.busy, handleSelectedAction, selected],
+  )
+
+  const listKeyHandlers = useMemo<Readonly<Record<string, (name: string) => void>>>(
+    () => ({
+      q: onExit,
+      v: options.onBack,
+      escape: options.onBack,
+      n: () => setCreating(true),
+      r: () => void actions.refresh(),
+      up: () => moveSelected(-1),
+      k: () => moveSelected(-1),
+      down: () => moveSelected(1),
+      j: () => moveSelected(1),
+    }),
+    [actions, moveSelected, onExit, options.onBack],
+  )
+
   const handleListKey = useCallback(
     (name: string) => {
-      if (name === "q") {
-        onExit()
-        return
-      }
-      if (name === "n") {
-        setCreating(true)
-        return
-      }
-      if (name === "r") {
-        void actions.refresh()
-        return
-      }
-      if (name === "up" || name === "k") {
-        setSelectedIndex((current) => moveSelection(current, -1, actions.dashboard.tunnels.length))
-        return
-      }
-      if (name === "down" || name === "j") {
-        setSelectedIndex((current) => moveSelection(current, 1, actions.dashboard.tunnels.length))
-        return
-      }
-      if (selected && !actions.busy) {
-        handleSelectedAction(name, selected)
-      }
+      const handler = listKeyHandlers[name] ?? handleUnmappedListKey
+      handler(name)
     },
-    [actions, handleSelectedAction, onExit, selected],
+    [handleUnmappedListKey, listKeyHandlers],
   )
 
   useKeyboard((key) => {
+    if (!options.enabled) {
+      return
+    }
     if (creating) {
       return
     }

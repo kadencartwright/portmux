@@ -23,6 +23,7 @@ export interface TunnelActions {
   readonly dashboard: Dashboard
   readonly busy: boolean
   readonly notice: string
+  readonly noticeAt: number
   readonly refresh: () => Promise<void>
   readonly create: (draft: TunnelDraft) => Promise<boolean>
   readonly toggle: (tunnel: TunnelView) => Promise<void>
@@ -34,7 +35,11 @@ export interface TunnelActions {
 export const useTunnels = (): TunnelActions => {
   const [dashboard, setDashboard] = useState<Dashboard>(emptyDashboard)
   const [busy, setBusy] = useState(true)
-  const [notice, setNotice] = useState("Hydrating persistent SSH forwards…")
+  const [notice, setNoticeState] = useState(() => ({
+    message: "Hydrating SSH forwards…",
+    updatedAt: Date.now(),
+  }))
+  const setNotice = useCallback((message: string) => setNoticeState({ message, updatedAt: Date.now() }), [])
 
   const refresh = useCallback(async () => {
     try {
@@ -42,7 +47,7 @@ export const useTunnels = (): TunnelActions => {
     } catch (cause) {
       setNotice(messageOf(cause))
     }
-  }, [])
+  }, [setNotice])
 
   const act = useCallback(
     async (action: () => Promise<unknown>, success: string): Promise<boolean> => {
@@ -60,7 +65,7 @@ export const useTunnels = (): TunnelActions => {
         setBusy(false)
       }
     },
-    [refresh],
+    [refresh, setNotice],
   )
 
   useEffect(() => {
@@ -88,7 +93,7 @@ export const useTunnels = (): TunnelActions => {
       active = false
       clearInterval(timer)
     }
-  }, [refresh])
+  }, [refresh, setNotice])
 
   const create = useCallback(
     (draft: TunnelDraft) =>
@@ -113,7 +118,8 @@ export const useTunnels = (): TunnelActions => {
   return {
     dashboard,
     busy,
-    notice,
+    notice: notice.message,
+    noticeAt: notice.updatedAt,
     refresh,
     create,
     toggle,

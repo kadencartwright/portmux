@@ -1,16 +1,16 @@
 import { theme } from "../theme.js"
 
 interface HeaderProps {
-  readonly running: number
-  readonly total: number
-  readonly external: number
+  readonly section: string
+  readonly summary: string
 }
 
-export const Header = ({ running, total, external }: HeaderProps) => (
+export const Header = ({ section, summary }: HeaderProps) => (
   <box
     style={{
       height: 3,
       width: "100%",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       paddingLeft: 1,
@@ -18,10 +18,7 @@ export const Header = ({ running, total, external }: HeaderProps) => (
       backgroundColor: theme.panel,
     }}
   >
-    <text content="PORTMUX" style={{ fg: theme.accent }} />
-    <text
-      content={`${running}/${total} managed running  ·  ${external} discovered`}
-      style={{ fg: theme.muted }}
-    />
+    <text content={`PORTMUX · ${section.toUpperCase()}`} style={{ fg: theme.accent }} />
+    <text content={summary} style={{ fg: theme.muted }} />
   </box>
 )
