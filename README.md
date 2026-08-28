@@ -55,6 +55,13 @@ pnpm link --global
 portmux
 ```
 
+With Nix, run Portmux directly or enter the development shell:
+
+```bash
+nix run github:kadencartwright/portmux
+nix develop
+```
+
 The form accepts an SSH config alias such as `devbox` or a destination such as `kaden@example.com`. With the
 SSH target field focused, press `↓` (or press Enter while it is empty) to browse concrete aliases discovered in
 the user SSH config. Selecting one keeps the alias itself, so OpenSSH still applies its configured `User`,
